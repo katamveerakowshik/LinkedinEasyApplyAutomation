@@ -1,1 +1,2 @@
 selenium == 4.28.1
+openai == 1.60.2
