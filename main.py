@@ -3,13 +3,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-import openai
+import ollama
 from fractions import Fraction
 from passw import passwrd, openai_key
 import time
 
-#openai api key
-openai.api_key = openai_key
+
 
 #Disabling webrtc and log warnings and info in the console
 chrome_options = Options()
@@ -35,8 +34,9 @@ def check_preferences(pref):
             skills_match = item.split("skills match")[0].strip()  # Get "2 of 7"
             fraction = skills_match.replace(" of ", "/").strip()  # Convert to "2/7"
             preferences.append(fraction)
-    preferences[1] = Fraction(preferences[1])
-    if preferences[0] == "Full-time" and preferences[1].numerator / preferences[1].denominator >= 0.5:
+    if len(preferences) == 2:
+        preferences[1] = Fraction(preferences[1])
+    if preferences[0] == "Full-time" and (len(preferences) == 1 or (len(preferences) > 1 and preferences[1].numerator / preferences[1].denominator >= 0.5)):
         return True
     else:
         return False
@@ -57,14 +57,9 @@ def check_experience(jd):
         Return only the number of years as an integer.
         """
 
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",  # Use "gpt-4" if you have access
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,  # Deterministic output
-        max_tokens=10
+    response = ollama.run(
+        model= 'deepseek-r1:7b',
+        prompt = prompt
     )
 
     # Extract and return the response text
@@ -72,6 +67,10 @@ def check_experience(jd):
 
     print(response)
     print(extracted_experience)
+    if extracted_experience < 1:
+        return True
+    else:
+        return False
 
 
 
@@ -93,6 +92,9 @@ def main():
     jd = driver.find_elements(By.CLASS_NAME, "jobs-description__content")
     print(check_preferences(pref = pref))
     print(check_experience(jd = jd))
+    if jd and pref:
+        driver.find_element(By.XPATH, "//button[@aria-label='Easy Apply']").click()
+
     time.sleep(10)
     driver.quit()
 
